@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build artifacts
+dist/
+build/
+android/app/build/
+android/.gradle/
+.gradle/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+.envtest
+
+# Google Services, Service Accounts & Secrets
+google-services*.json
+google-services.json
+*/google-services.json
+android/app/google-services.json
+*.keystore
+*.jks
+*.key
+*.pem
+serviceAccount*.json
+service-account*.json
+credentials.json
+credentials*.json
+
+# Firebase cache
+.firebase/
+firebase-debug.log*
+firestore-debug.log*
+
+# IDE and OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo

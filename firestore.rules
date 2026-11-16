@@ -1,0 +1,25 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // User profile access
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // User's private playbooks - only accessible by owner
+      match /playbooks/{playbookId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      
+      // User's anonymized call scorecards - strictly isolated
+      match /scorecards/{scorecardId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // Public demo templates (read-only for all users including anonymous)
+    match /templates/{templateId} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}

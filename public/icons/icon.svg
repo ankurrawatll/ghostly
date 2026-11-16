@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10B981" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <linearGradient id="wingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="100%" stop-color="#818CF8" />
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="#0B0F17"/>
+  <!-- Wing silhouettes -->
+  <path d="M24 74 C 40 40, 60 36, 64 64 C 54 50, 36 56, 24 74 Z" fill="url(#wingGrad)" opacity="0.8"/>
+  <path d="M104 74 C 88 40, 68 36, 64 64 C 74 50, 92 56, 104 74 Z" fill="url(#wingGrad)" opacity="0.8"/>
+  <!-- Shield center -->
+  <path d="M64 28 L90 42 V68 C90 86 64 104 64 104 C64 104 38 86 38 68 V42 Z" fill="url(#shieldGrad)" />
+  <!-- Lock / AI spark inside shield -->
+  <path d="M64 50 A 6 6 0 0 1 70 56 V60 H58 V56 A 6 6 0 0 1 64 50 Z" stroke="#0B0F17" stroke-width="3" fill="none" />
+  <rect x="54" y="60" width="20" height="16" rx="3" fill="#0B0F17" />
+  <circle cx="64" cy="68" r="2.5" fill="#10B981" />
+</svg>

@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "GhostWing: Zero-Upload AI Negotiation Wingman",
+  "version": "1.0.0",
+  "description": "Bot-free meeting copilot using Chrome Gemini Nano 4 for 100% on-device speech processing with anonymized cloud battlecards.",
+  "permissions": [
+    "sidePanel",
+    "tabCapture",
+    "storage",
+    "offscreen",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "https://*.firebaseio.com/*",
+    "https://*.googleapis.com/*",
+    "https://*.cloudfunctions.net/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "action": {
+    "default_title": "Open GhostWing Tactical HUD"
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  }
+}
