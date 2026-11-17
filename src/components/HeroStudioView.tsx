@@ -1,22 +1,29 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Mic, 
-  Monitor, 
-  Wifi, 
-  WifiOff, 
-  ShieldCheck, 
-  Play, 
-  Pause, 
-  Radio, 
+import { createPortal } from 'react-dom';
+import {
+  Mic,
+  Monitor,
+  Wifi,
+  WifiOff,
+  ShieldCheck,
+  Play,
+  Pause,
+  Radio,
   Check,
   Copy,
   Lock,
-  Sparkles
+  Sparkles,
+  AppWindow,
+  Smartphone,
+  X,
+  Zap
 } from 'lucide-react';
 import { Playbook, TacticalBattlecard, EgressAuditEntry } from '../types';
 import { hybridRouter, volatileBuffer } from '../firebase/aiLogic';
 import { AirGapInspector } from './AirGapInspector';
 import { MacSimulationWindow } from './MacSimulationWindow';
+import { FloatingMiniHud } from './FloatingMiniHud';
+import { useDocumentPip } from '../hooks/useDocumentPip';
 
 interface HeroStudioViewProps {
   playbooks: Playbook[];
@@ -49,6 +56,11 @@ export const HeroStudioView: React.FC<HeroStudioViewProps> = ({
   const [micLevel, setMicLevel] = useState(0);
   const [tabLevel, setTabLevel] = useState(0);
 
+  // Picture-in-Picture & Desk Stand Mode states
+  const { isPipActive, isSupported: isPipSupported, pipContainer, openPip, closePip } = useDocumentPip();
+  const [isDeskMode, setIsDeskMode] = useState(false);
+  const wakeLockRef = useRef<any>(null);
+
   // Real conversation telemetry
   const [talkRatio, setTalkRatio] = useState(0.5);
   const [speaker, setSpeaker] = useState<'USER' | 'COUNTERPARTY'>('USER');
@@ -80,8 +92,25 @@ export const HeroStudioView: React.FC<HeroStudioViewProps> = ({
   useEffect(() => {
     return () => {
       stopAllMedia();
+      if (wakeLockRef.current) {
+        try { wakeLockRef.current.release(); } catch (_) {}
+      }
     };
   }, []);
+
+  // Desk Companion Screen Wake Lock
+  useEffect(() => {
+    if (isDeskMode && typeof navigator !== 'undefined' && 'wakeLock' in navigator) {
+      (navigator as any).wakeLock.request('screen').then((lock: any) => {
+        wakeLockRef.current = lock;
+      }).catch(() => {});
+    } else if (!isDeskMode && wakeLockRef.current) {
+      try {
+        wakeLockRef.current.release();
+      } catch (_) {}
+      wakeLockRef.current = null;
+    }
+  }, [isDeskMode]);
 
   const stopAllMedia = () => {
     if (micStreamRef.current) {
@@ -91,10 +120,10 @@ export const HeroStudioView: React.FC<HeroStudioViewProps> = ({
       tabStreamRef.current.getTracks().forEach(t => t.stop());
     }
     if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
-      audioCtxRef.current.close().catch(() => {});
+      audioCtxRef.current.close().catch(() => { });
     }
     if (recognitionRef.current) {
-      try { recognitionRef.current.stop(); } catch (_) {}
+      try { recognitionRef.current.stop(); } catch (_) { }
     }
     if (animFrameRef.current) {
       cancelAnimationFrame(animFrameRef.current);
@@ -214,7 +243,7 @@ export const HeroStudioView: React.FC<HeroStudioViewProps> = ({
       };
       rec.start();
       recognitionRef.current = rec;
-    } catch (_) {}
+    } catch (_) { }
   };
 
   const handleIncomingDialogue = async (text: string, spk: 'USER' | 'COUNTERPARTY') => {
@@ -260,7 +289,7 @@ export const HeroStudioView: React.FC<HeroStudioViewProps> = ({
     <div className="relative z-10 space-y-12 max-w-7xl mx-auto px-2 sm:px-4 py-3">
       {/* 1. TOP SECTION: LIVE MEETING HUB (LEFT) + INTERACTIVE DEMO (RIGHT) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
-        
+
         {/* LEFT COLUMN: LIVE MEETING SOUND HUB & PRIVATE TRANSCRIPT */}
         <div className="lg:col-span-6 space-y-5">
           {/* Main Visualizer Container */}
@@ -268,13 +297,13 @@ export const HeroStudioView: React.FC<HeroStudioViewProps> = ({
             <div className="absolute -inset-1.5 bg-gradient-to-r from-purple-600/30 via-fuchsia-600/35 to-indigo-600/30 rounded-[32px] blur-2xl opacity-60 group-hover:opacity-90 transition duration-700 pointer-events-none" />
 
             <div className="relative rounded-[28px] bg-[#0A0B10] border border-white/10 overflow-hidden shadow-2xl p-6 space-y-5">
-              
+
               {/* Vertical fluted glass overlay */}
               <div className="absolute inset-0 fluted-glass-overlay pointer-events-none opacity-60" />
               <div className="absolute inset-0 film-grain pointer-events-none opacity-30" />
 
               {/* Reactive radiant audio bloom */}
-              <div 
+              <div
                 className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full blur-[70px] pointer-events-none transition-transform duration-200"
                 style={{
                   width: '300px',
@@ -381,26 +410,57 @@ export const HeroStudioView: React.FC<HeroStudioViewProps> = ({
 
               {/* Action Toolbar */}
               <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-white/10">
-                <button
-                  onClick={toggleSession}
-                  className="btn-white text-xs cursor-pointer shadow-lg"
-                >
-                  {isCapturing ? <Pause className="w-4 h-4 text-black" /> : <Play className="w-4 h-4 text-black" />}
-                  <span>{isCapturing ? 'End Meeting & Get Summary' : 'Start Meeting Wingman'}</span>
-                </button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={toggleSession}
+                    className="btn-white text-xs cursor-pointer shadow-lg"
+                  >
+                    {isCapturing ? <Pause className="w-4 h-4 text-black" /> : <Play className="w-4 h-4 text-black" />}
+                    <span>{isCapturing ? 'End Meeting & Get Summary' : 'Start Meeting Wingman'}</span>
+                  </button>
 
-                <button
-                  onClick={toggleAirplaneMode}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center transition-all border ${
-                    simulatedOffline
-                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 animate-pulse'
-                      : 'bg-white/5 border-white/10 text-white/60 hover:text-white'
-                  }`}
-                  title="Test offline AI on your laptop"
-                >
-                  {simulatedOffline ? <WifiOff className="w-3.5 h-3.5 mr-1 text-amber-400" /> : <Wifi className="w-3.5 h-3.5 mr-1" />}
-                  {simulatedOffline ? 'Offline Mode: ON' : 'Test Offline AI'}
-                </button>
+                  {/* Float Mini-HUD (Webcam Teleprompter) */}
+                  <button
+                    onClick={() => isPipActive ? closePip() : openPip()}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center transition-all border shadow-md ${
+                      isPipActive
+                        ? 'bg-purple-600 text-white border-purple-400 shadow-purple-500/30'
+                        : 'bg-purple-950/40 hover:bg-purple-900/50 text-purple-200 border-purple-500/30'
+                    }`}
+                    title="Pop out an always-on-top floating teleprompter directly beneath your laptop camera"
+                  >
+                    <AppWindow className="w-3.5 h-3.5 mr-1.5 text-purple-300" />
+                    <span>{isPipActive ? '🪟 Mini-HUD Floating' : '🪟 Float Mini-HUD (Webcam)'}</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setIsDeskMode(!isDeskMode)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center transition-all border ${
+                      isDeskMode
+                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                        : 'bg-white/5 border-white/10 text-white/60 hover:text-white'
+                    }`}
+                    title="Toggle high-contrast companion display for phone/tablet placed on desk"
+                  >
+                    <Smartphone className="w-3.5 h-3.5 mr-1 text-emerald-400" />
+                    <span>{isDeskMode ? 'Desk Stand: ON' : 'Phone on Desk Mode'}</span>
+                  </button>
+
+                  <button
+                    onClick={toggleAirplaneMode}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center transition-all border ${
+                      simulatedOffline
+                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 animate-pulse'
+                        : 'bg-white/5 border-white/10 text-white/60 hover:text-white'
+                    }`}
+                    title="Test offline AI on your laptop"
+                  >
+                    {simulatedOffline ? <WifiOff className="w-3.5 h-3.5 mr-1 text-amber-400" /> : <Wifi className="w-3.5 h-3.5 mr-1" />}
+                    {simulatedOffline ? 'Offline: ON' : 'Test Offline AI'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -432,11 +492,10 @@ export const HeroStudioView: React.FC<HeroStudioViewProps> = ({
                   return (
                     <div
                       key={turn.id}
-                      className={`p-2.5 rounded-xl text-xs leading-relaxed transition-all ${
-                        isUser
-                          ? 'bg-white/[0.04] border border-white/[0.08] text-white/90 ml-6'
-                          : 'bg-purple-950/20 border border-purple-500/20 text-purple-200 mr-6'
-                      }`}
+                      className={`p-2.5 rounded-xl text-xs leading-relaxed transition-all ${isUser
+                        ? 'bg-white/[0.04] border border-white/[0.08] text-white/90 ml-6'
+                        : 'bg-purple-950/20 border border-purple-500/20 text-purple-200 mr-6'
+                        }`}
                     >
                       <div className="flex items-center justify-between text-[10px] text-white/40 mb-1">
                         <span className={isUser ? 'text-emerald-400 font-bold' : 'text-fuchsia-400 font-bold'}>
@@ -519,20 +578,19 @@ export const HeroStudioView: React.FC<HeroStudioViewProps> = ({
             const theme = playbook.scenarioType === 'sales'
               ? { bg: 'from-rose-600 via-orange-600 to-amber-500', tag: 'Sales Call' }
               : playbook.scenarioType === 'fundraising'
-              ? { bg: 'from-violet-600 via-indigo-600 to-blue-500', tag: 'Investor Pitch' }
-              : playbook.scenarioType === 'recruiting'
-              ? { bg: 'from-cyan-500 via-blue-600 to-purple-600', tag: 'Salary & Comp' }
-              : { bg: 'from-fuchsia-600 via-pink-600 to-rose-600', tag: 'Legal & Risk' };
+                ? { bg: 'from-violet-600 via-indigo-600 to-blue-500', tag: 'Investor Pitch' }
+                : playbook.scenarioType === 'recruiting'
+                  ? { bg: 'from-cyan-500 via-blue-600 to-purple-600', tag: 'Salary & Comp' }
+                  : { bg: 'from-fuchsia-600 via-pink-600 to-rose-600', tag: 'Legal & Risk' };
 
             return (
               <div
                 key={playbook.id}
                 onClick={() => onSelectPlaybook(playbook.id)}
-                className={`ref-card p-4 flex flex-col justify-between cursor-pointer group transition-all ${
-                  isActive
-                    ? 'border-purple-500/80 bg-white/[0.08] shadow-[0_0_30px_rgba(168,85,247,0.3)] ring-1 ring-purple-500/50'
-                    : ''
-                }`}
+                className={`ref-card p-4 flex flex-col justify-between cursor-pointer group transition-all ${isActive
+                  ? 'border-purple-500/80 bg-white/[0.08] shadow-[0_0_30px_rgba(168,85,247,0.3)] ring-1 ring-purple-500/50'
+                  : ''
+                  }`}
               >
                 <div>
                   <div className={`h-24 w-full rounded-2xl relative overflow-hidden p-3 flex flex-col justify-between bg-gradient-to-br ${theme.bg}`}>
@@ -579,6 +637,148 @@ export const HeroStudioView: React.FC<HeroStudioViewProps> = ({
           })}
         </div>
       </div>
+
+      {/* Picture-in-Picture Mini-HUD Portal (Always-On-Top on Desktop over Google Meet) */}
+      {pipContainer && createPortal(
+        <FloatingMiniHud
+          activeBattlecard={activeBattlecard}
+          talkRatio={talkRatio}
+          speaker={speaker}
+          latestTurnText={transcriptStream[transcriptStream.length - 1]?.text}
+          isCapturing={isCapturing}
+          onSimulateObjection={(objText) => handleIncomingDialogue(objText, 'COUNTERPARTY')}
+          onClose={closePip}
+        />,
+        pipContainer
+      )}
+
+      {/* Desk Companion Mode (Phone on Desk Stand View) */}
+      {isDeskMode && (
+        <div className="fixed inset-0 z-50 bg-[#07080B] flex flex-col p-6 sm:p-10 font-sans selection:bg-purple-500/30 overflow-y-auto">
+          {/* Ambient Lighting */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-80 bg-gradient-to-b from-purple-600/30 via-fuchsia-600/10 to-transparent pointer-events-none" />
+
+          {/* Top Bar with Screen Wake Lock Indicator */}
+          <div className="relative z-10 flex items-center justify-between pb-4 border-b border-white/10 mb-6">
+            <div className="flex items-center space-x-3">
+              <div className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_12px_#34D399]" />
+              <div>
+                <h1 className="text-lg font-bold text-white flex items-center">
+                  GhostWing Desk Companion
+                  <span className="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    Screen Awake ON
+                  </span>
+                </h1>
+                <p className="text-xs text-white/50">High-visibility teleprompter propped on your desk next to your laptop</p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setIsDeskMode(false)}
+              className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/15 flex items-center space-x-1.5 transition-all cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+              <span>Exit Desk Stand</span>
+            </button>
+          </div>
+
+          {/* Big Live Talk Ratio Gauge */}
+          <div className="relative z-10 p-5 rounded-2xl bg-white/[0.03] border border-white/10 mb-6 max-w-4xl mx-auto w-full space-y-2">
+            <div className="flex items-center justify-between text-sm text-white/70">
+              <span className="font-semibold">Live Meeting Balance</span>
+              <span className="font-mono text-emerald-400 font-bold">
+                You: {Math.round(talkRatio * 100)}% • Them: {100 - Math.round(talkRatio * 100)}%
+              </span>
+            </div>
+            <div className="h-3 w-full bg-white/10 rounded-full overflow-hidden flex">
+              <div
+                className="bg-gradient-to-r from-emerald-400 to-teal-400 transition-all duration-300"
+                style={{ width: `${Math.round(talkRatio * 100)}%` }}
+              />
+              <div
+                className="bg-gradient-to-r from-purple-500 to-fuchsia-500 transition-all duration-300"
+                style={{ width: `${100 - Math.round(talkRatio * 100)}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Large High-Contrast Tactical Battlecard */}
+          <div className="relative z-10 flex-1 max-w-4xl mx-auto w-full flex flex-col justify-center">
+            {activeBattlecard ? (
+              <div className="p-8 sm:p-10 rounded-3xl bg-gradient-to-b from-[#1C152B] to-[#100D1C] border border-purple-500/40 shadow-2xl space-y-6">
+                <div className="flex items-center justify-between">
+                  <span className="inline-flex items-center text-xs font-bold text-fuchsia-300 bg-fuchsia-500/20 border border-fuchsia-500/30 px-3 py-1 rounded-full uppercase tracking-wider">
+                    <Zap className="w-3.5 h-3.5 mr-1.5 text-fuchsia-400" />
+                    {activeBattlecard.headline}
+                  </span>
+                  <span className="text-xs font-mono text-purple-300/70">
+                    {activeBattlecard.latencyMs}ms local
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-xs font-bold text-white/40 uppercase tracking-widest">
+                    Say this right now (readable from desk):
+                  </p>
+                  <p className="text-2xl sm:text-3xl font-bold text-white leading-tight">
+                    "{activeBattlecard.counterMove}"
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-xl bg-black/40 border border-white/10 text-sm text-purple-200/90 leading-relaxed">
+                  💡 <strong>Strategic Rationale:</strong> {activeBattlecard.rationale}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3 pt-2">
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(activeBattlecard.counterMove);
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                    }}
+                    className="btn-white text-sm py-3 px-6 shadow-xl cursor-pointer"
+                  >
+                    {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4 text-black" />}
+                    <span>{copied ? 'Copied to Clipboard!' : 'Copy Spoken Counter'}</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="p-12 text-center rounded-3xl bg-white/[0.02] border border-white/10 space-y-4">
+                <div className="w-16 h-16 rounded-full bg-purple-500/10 border border-purple-500/20 mx-auto flex items-center justify-center">
+                  <Sparkles className="w-8 h-8 text-purple-400 animate-pulse" />
+                </div>
+                <h3 className="text-xl font-bold text-white">Desk Stand Armed & Listening</h3>
+                <p className="text-sm text-white/50 max-w-md mx-auto leading-relaxed">
+                  Leave your phone propped up on your desk stand during your call. When Marcus Vance or an enterprise lead pushes an objection, giant high-contrast battlecards will illuminate here.
+                </p>
+
+                {/* Quick Simulated Triggers */}
+                <div className="pt-6 border-t border-white/10 flex flex-wrap justify-center gap-2">
+                  <button
+                    onClick={() => handleIncomingDialogue('Acme Cloud offered us a 30% discount if we switch', 'COUNTERPARTY')}
+                    className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold text-white border border-white/15 cursor-pointer"
+                  >
+                    ⚡ Test 30% Competitor Discount
+                  </button>
+                  <button
+                    onClick={() => handleIncomingDialogue('We require 2 board seats and 20% option pool', 'COUNTERPARTY')}
+                    className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold text-white border border-white/15 cursor-pointer"
+                  >
+                    ⚡ Test Board Seats Objection
+                  </button>
+                  <button
+                    onClick={() => handleIncomingDialogue('We require unlimited liability and 100% SLA cash credits', 'COUNTERPARTY')}
+                    className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold text-white border border-white/15 cursor-pointer"
+                  >
+                    ⚡ Test SLA Liability
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
