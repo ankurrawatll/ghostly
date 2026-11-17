@@ -34,7 +34,7 @@ interface SimulationScenario {
 const DEMO_SCENARIOS: SimulationScenario[] = [
   {
     id: 'saas-pricing',
-    name: 'Enterprise SaaS Renewal',
+    name: 'Sales Call',
     tag: 'Sales',
     clientName: 'Sarah Jenkins',
     clientRole: 'VP of Procurement',
@@ -52,7 +52,7 @@ const DEMO_SCENARIOS: SimulationScenario[] = [
   },
   {
     id: 'term-sheet',
-    name: 'Series A Term Sheet',
+    name: 'Investor Pitch',
     tag: 'Fundraising',
     clientName: 'Marcus Vance',
     clientRole: 'Lead Partner, Sequoia Seed',
@@ -70,7 +70,7 @@ const DEMO_SCENARIOS: SimulationScenario[] = [
   },
   {
     id: 'exec-comp',
-    name: 'Executive Offer Negotiation',
+    name: 'Salary Offer',
     tag: 'Recruiting',
     clientName: 'Elena Rostova',
     clientRole: 'VP Engineering Candidate',
@@ -253,11 +253,11 @@ export const MacSimulationWindow: React.FC = () => {
             <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-emerald-950/30 border border-emerald-500/40 text-[11px] font-mono shadow-md animate-in fade-in zoom-in-95 duration-200">
               <div className="flex items-center space-x-2 text-emerald-300 font-bold">
                 <Cpu className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Nano 4 On-Device VAD ({scenario.nanoDetectionMs}ms)</span>
+                <span>Instant On-Device AI ({scenario.nanoDetectionMs}ms)</span>
               </div>
-              <div className="flex items-center space-x-1.5 text-emerald-200/70 text-[10px]">
+              <div className="flex items-center space-x-1.5 text-emerald-200/80 text-[10px]">
                 <Lock className="w-3 h-3 text-emerald-400" />
-                <span>PII Scrubbed • 0 B Egress</span>
+                <span>Private • 0 Audio Uploaded</span>
               </div>
             </div>
           )}

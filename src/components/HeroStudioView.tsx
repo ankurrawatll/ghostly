@@ -8,10 +8,10 @@ import {
   Play, 
   Pause, 
   Radio, 
-  RotateCw,
-  Sparkles,
   Check,
-  Copy
+  Copy,
+  Lock,
+  Sparkles
 } from 'lucide-react';
 import { Playbook, TacticalBattlecard, EgressAuditEntry } from '../types';
 import { hybridRouter, volatileBuffer } from '../firebase/aiLogic';
@@ -49,7 +49,7 @@ export const HeroStudioView: React.FC<HeroStudioViewProps> = ({
   const [micLevel, setMicLevel] = useState(0);
   const [tabLevel, setTabLevel] = useState(0);
 
-  // Real conversation telemetry (empty by default — no fake mocks)
+  // Real conversation telemetry
   const [talkRatio, setTalkRatio] = useState(0.5);
   const [speaker, setSpeaker] = useState<'USER' | 'COUNTERPARTY'>('USER');
   const [copied, setCopied] = useState(false);
@@ -143,7 +143,7 @@ export const HeroStudioView: React.FC<HeroStudioViewProps> = ({
     }
   };
 
-  // Start Live Zero-Upload Session
+  // Start Meeting Wingman Session
   const toggleSession = () => {
     if (isCapturing) {
       setIsCapturing(false);
@@ -155,7 +155,7 @@ export const HeroStudioView: React.FC<HeroStudioViewProps> = ({
     }
   };
 
-  // Setup Web Audio Analysers for Real Audio Reactivity
+  // Setup Web Audio Analysers for Sound Meter
   const setupAudioMeters = () => {
     if (!audioCtxRef.current) {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
@@ -197,7 +197,7 @@ export const HeroStudioView: React.FC<HeroStudioViewProps> = ({
     check();
   };
 
-  // Web Speech API for Local On-Device Transcription
+  // Speech Recognition for Local Real-Time Transcription
   const initSpeechRecognition = () => {
     const SpeechRec = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRec) return;
@@ -217,7 +217,6 @@ export const HeroStudioView: React.FC<HeroStudioViewProps> = ({
     } catch (_) {}
   };
 
-  // Process incoming speech through on-device hybrid inference
   const handleIncomingDialogue = async (text: string, spk: 'USER' | 'COUNTERPARTY') => {
     setSpeaker(spk);
     setTranscriptStream(prev => [
@@ -259,19 +258,18 @@ export const HeroStudioView: React.FC<HeroStudioViewProps> = ({
 
   return (
     <div className="relative z-10 space-y-12 max-w-7xl mx-auto px-2 sm:px-4 py-3">
-      {/* 1. TOP SECTION: REAL LIVE COCKPIT (LEFT) + MAC DEMO SIMULATION (RIGHT) */}
+      {/* 1. TOP SECTION: LIVE MEETING HUB (LEFT) + INTERACTIVE DEMO (RIGHT) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
         
-        {/* LEFT COLUMN: REAL OPTICAL FLUTED GLASS AUDIO RADAR & IN-MEMORY SPEECH BUFFER */}
+        {/* LEFT COLUMN: LIVE MEETING SOUND HUB & PRIVATE TRANSCRIPT */}
         <div className="lg:col-span-6 space-y-5">
           {/* Main Visualizer Container */}
           <div className="relative group">
-            {/* Luminous Glow aura behind the card */}
             <div className="absolute -inset-1.5 bg-gradient-to-r from-purple-600/30 via-fuchsia-600/35 to-indigo-600/30 rounded-[32px] blur-2xl opacity-60 group-hover:opacity-90 transition duration-700 pointer-events-none" />
 
             <div className="relative rounded-[28px] bg-[#0A0B10] border border-white/10 overflow-hidden shadow-2xl p-6 space-y-5">
               
-              {/* Vertical optical fluted glass overlay */}
+              {/* Vertical fluted glass overlay */}
               <div className="absolute inset-0 fluted-glass-overlay pointer-events-none opacity-60" />
               <div className="absolute inset-0 film-grain pointer-events-none opacity-30" />
 
@@ -286,17 +284,17 @@ export const HeroStudioView: React.FC<HeroStudioViewProps> = ({
                 }}
               />
 
-              {/* Header inside Cockpit */}
+              {/* Friendly Non-Technical Status Pills */}
               <div className="relative z-10 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center space-x-2">
                   <span className="ref-pill text-white bg-black/60 border-white/20 font-bold">
-                    {isCapturing ? 'SESSION ACTIVE' : 'RADAR STANDBY'}
+                    {isCapturing ? '● LISTENING LIVE' : 'READY TO JOIN'}
                   </span>
-                  <span className="ref-pill text-emerald-400 bg-emerald-500/10 border-emerald-500/30 font-mono">
-                    0 B EGRESS
+                  <span className="ref-pill text-emerald-400 bg-emerald-500/10 border-emerald-500/30 font-semibold">
+                    100% PRIVATE
                   </span>
                   <span className="ref-pill text-purple-300 bg-purple-500/20 border-purple-500/30 text-[10px]">
-                    VOLATILE RAM
+                    NO CLOUD AUDIO
                   </span>
                 </div>
 
@@ -307,7 +305,7 @@ export const HeroStudioView: React.FC<HeroStudioViewProps> = ({
                 )}
               </div>
 
-              {/* Center Audio Reactive Waveform */}
+              {/* Center Audio Reactive Soundwave */}
               <div className="relative z-10 py-3 flex flex-col items-center justify-center">
                 <div className="flex items-center justify-center space-x-2 h-20">
                   {[30, 55, 80, 95, 70, 100, 85, 60, 90, 75, 45, 65, 85, 40].map((h, i) => (
@@ -321,61 +319,61 @@ export const HeroStudioView: React.FC<HeroStudioViewProps> = ({
                     />
                   ))}
                 </div>
-                <p className="text-[11px] text-white/40 font-mono mt-2">
+                <p className="text-[11px] text-white/50 mt-2">
                   {isCapturing
-                    ? `Live Audio: Mic (${micLevel}%) • Meet Tab (${tabLevel}%)`
-                    : 'Audio radar ready • Connect hardware or pick Google Meet tab'}
+                    ? `Active Voice Input: Mic (${micLevel}%) • Meeting Audio (${tabLevel}%)`
+                    : 'Sound wave standby • Connect your mic or select your Google Meet tab'}
                 </p>
               </div>
 
-              {/* Dual-Channel Hardware Connectors */}
+              {/* Simple Audio Connectors */}
               <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 {/* Channel 1: Microphone */}
-                <div className="p-3 rounded-2xl bg-black/40 border border-white/10 flex items-center justify-between">
+                <div className="p-3.5 rounded-2xl bg-black/40 border border-white/10 flex items-center justify-between">
                   <div className="flex items-center space-x-2.5">
                     <div className="w-8 h-8 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-center">
                       <Mic className={`w-4 h-4 ${hasMic ? 'text-emerald-400' : 'text-white/40'}`} />
                     </div>
                     <div>
                       <p className="text-xs font-bold text-white">Your Microphone</p>
-                      <p className="text-[10px] text-white/40 font-mono">Talk-to-Listen Input</p>
+                      <p className="text-[11px] text-white/40">Your voice</p>
                     </div>
                   </div>
                   {!hasMic ? (
                     <button
                       onClick={connectMicrophone}
-                      className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/10 hover:bg-white/20 text-white border border-white/15 transition-all"
+                      className="px-3 py-1.5 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 text-white border border-white/15 transition-all"
                     >
                       Connect
                     </button>
                   ) : (
-                    <span className="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg">
-                      Active
+                    <span className="text-xs text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg font-semibold">
+                      Connected
                     </span>
                   )}
                 </div>
 
                 {/* Channel 2: Google Meet / Zoom Tab Audio */}
-                <div className="p-3 rounded-2xl bg-black/40 border border-white/10 flex items-center justify-between">
+                <div className="p-3.5 rounded-2xl bg-black/40 border border-white/10 flex items-center justify-between">
                   <div className="flex items-center space-x-2.5">
                     <div className="w-8 h-8 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-center">
                       <Monitor className={`w-4 h-4 ${hasTab ? 'text-cyan-400' : 'text-white/40'}`} />
                     </div>
                     <div>
                       <p className="text-xs font-bold text-white">Google Meet / Zoom</p>
-                      <p className="text-[10px] text-white/40 font-mono">Counterparty Audio</p>
+                      <p className="text-[11px] text-white/40">Meeting audio</p>
                     </div>
                   </div>
                   {!hasTab ? (
                     <button
                       onClick={connectTabAudio}
-                      className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/10 hover:bg-white/20 text-white border border-white/15 transition-all"
+                      className="px-3 py-1.5 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 text-white border border-white/15 transition-all"
                     >
                       Pick Tab
                     </button>
                   ) : (
-                    <span className="text-xs font-mono text-cyan-400 bg-cyan-500/10 px-2 py-1 rounded-lg">
-                      Capturing
+                    <span className="text-xs text-cyan-400 bg-cyan-500/10 px-2 py-1 rounded-lg font-semibold">
+                      Connected
                     </span>
                   )}
                 </div>
@@ -388,7 +386,7 @@ export const HeroStudioView: React.FC<HeroStudioViewProps> = ({
                   className="btn-white text-xs cursor-pointer shadow-lg"
                 >
                   {isCapturing ? <Pause className="w-4 h-4 text-black" /> : <Play className="w-4 h-4 text-black" />}
-                  <span>{isCapturing ? 'End Meeting & Purge RAM' : 'Start Zero-Upload Session'}</span>
+                  <span>{isCapturing ? 'End Meeting & Get Summary' : 'Start Meeting Wingman'}</span>
                 </button>
 
                 <button
@@ -398,23 +396,23 @@ export const HeroStudioView: React.FC<HeroStudioViewProps> = ({
                       ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 animate-pulse'
                       : 'bg-white/5 border-white/10 text-white/60 hover:text-white'
                   }`}
-                  title="Test offline on-device fallback"
+                  title="Test offline AI on your laptop"
                 >
                   {simulatedOffline ? <WifiOff className="w-3.5 h-3.5 mr-1 text-amber-400" /> : <Wifi className="w-3.5 h-3.5 mr-1" />}
-                  {simulatedOffline ? 'Airplane Mode: ON' : 'Simulate Airplane Mode'}
+                  {simulatedOffline ? 'Offline Mode: ON' : 'Test Offline AI'}
                 </button>
               </div>
             </div>
           </div>
 
-          {/* Real-time In-Memory Dialogue Stream (Clean State — No fake mocks) */}
+          {/* Live In-Memory Conversation Stream */}
           <div className="rounded-2xl bg-[#0B0C12] border border-white/10 p-4 space-y-3 shadow-xl">
-            <div className="flex items-center justify-between text-xs text-white/50 border-b border-white/[0.06] pb-2 font-mono">
-              <span className="flex items-center">
+            <div className="flex items-center justify-between text-xs text-white/50 border-b border-white/[0.06] pb-2">
+              <span className="flex items-center font-medium">
                 <ShieldCheck className="w-3.5 h-3.5 mr-1.5 text-emerald-400" />
-                Live In-Memory Speech Stream
+                Live Conversation Subtitles
               </span>
-              <span className="text-[11px] text-white/40">Volatile Ring Buffer • 0 B to Disk</span>
+              <span className="text-[11px] text-white/40">Auto-deleted when meeting ends</span>
             </div>
 
             {transcriptStream.length === 0 ? (
@@ -422,9 +420,9 @@ export const HeroStudioView: React.FC<HeroStudioViewProps> = ({
                 <div className="w-9 h-9 rounded-full bg-white/[0.04] border border-white/10 mx-auto flex items-center justify-center">
                   <Radio className="w-4 h-4 text-purple-400" />
                 </div>
-                <p className="text-xs font-semibold text-white/80">In-Memory Speech Buffer Ready</p>
+                <p className="text-xs font-semibold text-white/80">Ready for your call</p>
                 <p className="text-[11px] text-white/40 max-w-sm mx-auto leading-relaxed">
-                  Speech will transcribe here in real time during your meeting. All raw voice data stays strictly in RAM and is permanently wiped when you end the call.
+                  Your spoken words will appear here in real time during the call. Everything stays inside your computer's temporary memory and disappears the moment you hang up.
                 </p>
               </div>
             ) : (
@@ -440,9 +438,9 @@ export const HeroStudioView: React.FC<HeroStudioViewProps> = ({
                           : 'bg-purple-950/20 border border-purple-500/20 text-purple-200 mr-6'
                       }`}
                     >
-                      <div className="flex items-center justify-between text-[10px] text-white/40 font-mono mb-1">
+                      <div className="flex items-center justify-between text-[10px] text-white/40 mb-1">
                         <span className={isUser ? 'text-emerald-400 font-bold' : 'text-fuchsia-400 font-bold'}>
-                          {isUser ? 'You (Sales / Founder)' : 'Counterparty (Client / Lead)'}
+                          {isUser ? 'You' : 'Client / Counterparty'}
                         </span>
                       </div>
                       <p>{turn.text}</p>
@@ -453,77 +451,77 @@ export const HeroStudioView: React.FC<HeroStudioViewProps> = ({
             )}
           </div>
 
-          {/* Active Live Battlecard (Only appears when live session triggers one) */}
+          {/* Active Live Battlecard (Surfaces live during real call) */}
           {activeBattlecard && (
             <div className="rounded-2xl bg-[#0E0F16] border border-purple-500/40 p-4 space-y-3 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
               <div className="flex items-center justify-between">
                 <span className="ref-pill text-purple-300 bg-purple-500/20 border-purple-500/30 text-[10px] font-bold">
-                  LIVE TACTICAL COUNTER
+                  RECOMMENDED RESPONSE
                 </span>
-                <span className="text-xs font-mono text-white/50">
-                  {activeBattlecard.latencyMs}ms latency
+                <span className="text-xs text-white/50">
+                  {activeBattlecard.latencyMs}ms instant
                 </span>
               </div>
-              <p className="text-sm font-bold text-white">
+              <p className="text-sm font-bold text-white leading-relaxed">
                 "{activeBattlecard.counterMove}"
               </p>
               <div className="flex items-center justify-between pt-1 border-t border-white/[0.06]">
                 <span className="text-[11px] text-white/40">
-                  Trigger: {activeBattlecard.sourceRule}
+                  Strategy: {activeBattlecard.sourceRule}
                 </span>
                 <button
                   onClick={handleCopyResponse}
                   className="btn-white text-xs"
                 >
                   {copied ? <Check className="w-3 h-3 text-emerald-600 stroke-[3]" /> : <Copy className="w-3 h-3 text-black" />}
-                  <span>{copied ? 'Copied' : 'Copy'}</span>
+                  <span>{copied ? 'Copied' : 'Copy What to Say'}</span>
                 </button>
               </div>
             </div>
           )}
         </div>
 
-        {/* RIGHT COLUMN: MAC-STYLE INTERACTIVE SIMULATION WINDOW (ANIMATED DEMO) */}
+        {/* RIGHT COLUMN: MAC-STYLE INTERACTIVE SIMULATION (ELEVATED & GLOWING) */}
         <div className="lg:col-span-6 space-y-5">
-          {/* Mac-Style Window with Animated Simulation */}
+          {/* Animated Mac Window */}
           <MacSimulationWindow />
 
-          {/* Air-Gap Network Egress Inspector (Auditable Proof) */}
+          {/* Privacy & Security Shield */}
           <AirGapInspector auditLog={auditLog} totalLocalWords={totalLocalWords} />
         </div>
       </div>
 
-      {/* 2. BOTTOM SECTION: ACTIVE NEGOTIATION PLAYBOOKS (CLOUD FIRESTORE KNOWLEDGE BASE) */}
+      {/* 2. BOTTOM SECTION: MEETING STRATEGIES & PLAYBOOKS */}
       <div className="space-y-6 pt-6 border-t border-white/[0.08]">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-2xl font-extrabold text-white tracking-tight flex items-center gap-2.5">
-              <span>Negotiation Playbooks</span>
+              <span>Meeting Strategies & Playbooks</span>
               <span className="ref-pill text-purple-300 border-purple-500/30 text-[10px]">
-                Cloud Firestore
+                Ready to Arm
               </span>
             </h2>
             <p className="text-xs text-white/50 mt-1">
-              Select a playbook to ground your on-device wingman in battlecards, competitor counters, and walk-away guardrails.
+              Select a strategy to equip your wingman with objection counters and negotiation guardrails for your call.
             </p>
           </div>
 
-          <span className="text-xs text-white/40 font-mono">
-            Active: <strong className="text-white">{activePlaybook.title}</strong>
+          <span className="text-xs text-white/40">
+            Active Strategy: <strong className="text-white">{activePlaybook.title}</strong>
           </span>
         </div>
 
-        {/* 4 Luxury Playbook Cards */}
+        {/* 4 Clean Playbook Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {playbooks.map((playbook) => {
             const isActive = playbook.id === activePlaybook.id;
 
             const theme = playbook.scenarioType === 'sales'
-              ? { bg: 'from-rose-600 via-orange-600 to-amber-500', tag: 'Enterprise Sales' }
+              ? { bg: 'from-rose-600 via-orange-600 to-amber-500', tag: 'Sales Call' }
               : playbook.scenarioType === 'fundraising'
-              ? { bg: 'from-violet-600 via-indigo-600 to-blue-500', tag: 'Venture & Equity' }
+              ? { bg: 'from-violet-600 via-indigo-600 to-blue-500', tag: 'Investor Pitch' }
               : playbook.scenarioType === 'recruiting'
-              ? { bg: 'from-cyan-500 via-blue-600 to-purple-600', tag: 'Exec Recruiting' }
+              ? { bg: 'from-cyan-500 via-blue-600 to-purple-600', tag: 'Salary & Comp' }
               : { bg: 'from-fuchsia-600 via-pink-600 to-rose-600', tag: 'Legal & Risk' };
 
             return (
@@ -537,7 +535,6 @@ export const HeroStudioView: React.FC<HeroStudioViewProps> = ({
                 }`}
               >
                 <div>
-                  {/* Frosted gradient preview header */}
                   <div className={`h-24 w-full rounded-2xl relative overflow-hidden p-3 flex flex-col justify-between bg-gradient-to-br ${theme.bg}`}>
                     <div className="absolute inset-0 fluted-bars-fine opacity-40" />
                     <div className="absolute inset-0 film-grain opacity-40" />
@@ -553,13 +550,12 @@ export const HeroStudioView: React.FC<HeroStudioViewProps> = ({
                       )}
                     </div>
 
-                    <div className="relative z-10 flex items-center justify-between text-[11px] text-white/90 font-mono">
-                      <span>{playbook.rules.length} Tactical Rules</span>
+                    <div className="relative z-10 flex items-center justify-between text-[11px] text-white/90">
+                      <span>{playbook.rules.length} Tactical Moves</span>
                       <span>{playbook.walkAwayGuardrails.length} Guardrails</span>
                     </div>
                   </div>
 
-                  {/* Playbook Title & Description */}
                   <div className="pt-3.5 pb-2 space-y-1">
                     <h3 className="text-base font-bold text-white tracking-tight group-hover:text-purple-300 transition-colors">
                       {playbook.title}
@@ -570,13 +566,12 @@ export const HeroStudioView: React.FC<HeroStudioViewProps> = ({
                   </div>
                 </div>
 
-                {/* Bottom rule preview */}
                 <div className="pt-3 border-t border-white/[0.06] flex items-center justify-between text-[11px]">
                   <span className="text-white/40 truncate max-w-[170px]">
                     "{playbook.rules[0]?.triggerTopic || 'Pricing defense'}"
                   </span>
                   <span className={`font-semibold ${isActive ? 'text-purple-400' : 'text-white/60 group-hover:text-white'}`}>
-                    {isActive ? 'Armed' : 'Arm →'}
+                    {isActive ? 'Armed' : 'Select Strategy →'}
                   </span>
                 </div>
               </div>
