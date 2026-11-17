@@ -1,33 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Mic, 
-  MicOff, 
   Monitor, 
-  Volume2, 
   Wifi, 
   WifiOff, 
   ShieldCheck, 
-  Lock, 
-  Cpu, 
-  Cloud, 
-  Zap, 
-  Copy, 
-  Check, 
-  Send, 
-  RotateCw, 
   Play, 
   Pause, 
-  Sparkles, 
-  BookOpen, 
-  CheckCircle2, 
-  AlertCircle,
-  ArrowUpRight
+  Radio, 
+  RotateCw,
+  Sparkles,
+  Check,
+  Copy
 } from 'lucide-react';
 import { Playbook, TacticalBattlecard, EgressAuditEntry } from '../types';
 import { hybridRouter, volatileBuffer } from '../firebase/aiLogic';
 import { AirGapInspector } from './AirGapInspector';
-import { TalkRatioGauge } from './TalkRatioGauge';
-import { CommitmentsTracker } from './CommitmentsTracker';
+import { MacSimulationWindow } from './MacSimulationWindow';
 
 interface HeroStudioViewProps {
   playbooks: Playbook[];
@@ -60,48 +49,14 @@ export const HeroStudioView: React.FC<HeroStudioViewProps> = ({
   const [micLevel, setMicLevel] = useState(0);
   const [tabLevel, setTabLevel] = useState(0);
 
-  // Conversation telemetry
+  // Real conversation telemetry (empty by default — no fake mocks)
   const [talkRatio, setTalkRatio] = useState(0.5);
   const [speaker, setSpeaker] = useState<'USER' | 'COUNTERPARTY'>('USER');
   const [copied, setCopied] = useState(false);
-  const [customObjection, setCustomObjection] = useState('');
-  const [commitments, setCommitments] = useState<string[]>([]);
+  const [activeBattlecard, setActiveBattlecard] = useState<TacticalBattlecard | null>(null);
+  const [transcriptStream, setTranscriptStream] = useState<TranscriptTurn[]>([]);
   const [auditLog, setAuditLog] = useState<EgressAuditEntry[]>([]);
   const [totalLocalWords, setTotalLocalWords] = useState<number>(0);
-
-  // Live in-memory dialogue stream
-  const [transcriptStream, setTranscriptStream] = useState<TranscriptTurn[]>([
-    {
-      id: 't-init-1',
-      speaker: 'COUNTERPARTY',
-      text: 'Glad to connect. We love your product, but our CFO asked us to scrutinize all vendor licenses this quarter.',
-      timestamp: Date.now() - 25000
-    },
-    {
-      id: 't-init-2',
-      speaker: 'COUNTERPARTY',
-      text: 'To be candid, Acme Cloud offered us a 28% discount if we migrate to their suite this month. Can you match that pricing?',
-      timestamp: Date.now() - 15000
-    },
-    {
-      id: 't-init-3',
-      speaker: 'USER',
-      text: 'I completely understand budget pressures. However, migrating means rebuilding custom integrations and retraining 200 engineers.',
-      timestamp: Date.now() - 5000
-    }
-  ]);
-
-  // Active Battlecard state
-  const [activeBattlecard, setActiveBattlecard] = useState<TacticalBattlecard>({
-    id: 'bc-hero-init',
-    headline: 'Competitor Discount Defense',
-    counterMove: 'Anchor on verified 99.99% uptime and zero-cost onboarding. Offer 10% multi-year lock instead of cash discount.',
-    rationale: 'IDC client study proves 3.2x ROI compared to migration cost. Protects contract gross margin without cash concession.',
-    sourceRule: 'Competitor offering 20-30% lower pricing',
-    inferenceSource: 'ON_DEVICE',
-    latencyMs: 42,
-    timestamp: Date.now()
-  });
 
   // Audio stream and analysis references
   const micStreamRef = useRef<MediaStream | null>(null);
@@ -147,6 +102,7 @@ export const HeroStudioView: React.FC<HeroStudioViewProps> = ({
   };
 
   const handleCopyResponse = () => {
+    if (!activeBattlecard) return;
     navigator.clipboard.writeText(activeBattlecard.counterMove);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -258,7 +214,7 @@ export const HeroStudioView: React.FC<HeroStudioViewProps> = ({
       };
       rec.start();
       recognitionRef.current = rec;
-    } catch (_) { }
+    } catch (_) {}
   };
 
   // Process incoming speech through on-device hybrid inference
@@ -285,24 +241,6 @@ export const HeroStudioView: React.FC<HeroStudioViewProps> = ({
     if (result.auditEntry) {
       setAuditLog(prev => [result.auditEntry!, ...prev]);
     }
-
-    // Commitment tracking
-    const lower = text.toLowerCase();
-    if (spk === 'COUNTERPARTY' && (lower.includes('will send') || lower.includes('agree') || lower.includes('review') || lower.includes('sign'))) {
-      const c = `Counterparty: ${text.slice(0, 80)}`;
-      setCommitments(prev => prev.includes(c) ? prev : [c, ...prev]);
-    } else if (spk === 'USER' && (lower.includes('will send') || lower.includes('commit') || lower.includes('follow up'))) {
-      const c = `You: ${text.slice(0, 80)}`;
-      setCommitments(prev => prev.includes(c) ? prev : [c, ...prev]);
-    }
-  };
-
-  const handleCustomObjectionSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!customObjection.trim()) return;
-    const txt = customObjection.trim();
-    setCustomObjection('');
-    handleIncomingDialogue(txt, 'COUNTERPARTY');
   };
 
   const toggleAirplaneMode = () => {
@@ -321,11 +259,11 @@ export const HeroStudioView: React.FC<HeroStudioViewProps> = ({
 
   return (
     <div className="relative z-10 space-y-12 max-w-7xl mx-auto px-2 sm:px-4 py-3">
-      {/* 1. TOP HERO: LIVE NEGOTIATION COCKPIT (DUAL-CHANNEL AUDIO + TACTICAL BATTLECARD HUD) */}
+      {/* 1. TOP SECTION: REAL LIVE COCKPIT (LEFT) + MAC DEMO SIMULATION (RIGHT) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
         
-        {/* LEFT COLUMN: OPTICAL FLUTED GLASS AUDIO RADAR & IN-MEMORY SPEECH STREAM */}
-        <div className="lg:col-span-7 space-y-5">
+        {/* LEFT COLUMN: REAL OPTICAL FLUTED GLASS AUDIO RADAR & IN-MEMORY SPEECH BUFFER */}
+        <div className="lg:col-span-6 space-y-5">
           {/* Main Visualizer Container */}
           <div className="relative group">
             {/* Luminous Glow aura behind the card */}
@@ -369,7 +307,7 @@ export const HeroStudioView: React.FC<HeroStudioViewProps> = ({
                 )}
               </div>
 
-              {/* Center Audio Reactive Radar Waveform */}
+              {/* Center Audio Reactive Waveform */}
               <div className="relative z-10 py-3 flex flex-col items-center justify-center">
                 <div className="flex items-center justify-center space-x-2 h-20">
                   {[30, 55, 80, 95, 70, 100, 85, 60, 90, 75, 45, 65, 85, 40].map((h, i) => (
@@ -377,14 +315,16 @@ export const HeroStudioView: React.FC<HeroStudioViewProps> = ({
                       key={i}
                       className="w-2.5 rounded-full bg-gradient-to-t from-fuchsia-500 via-purple-300 to-white transition-all duration-100 shadow-[0_0_12px_rgba(217,70,239,0.7)]"
                       style={{
-                        height: `${Math.max(12, (h * ((micLevel + tabLevel) || 15)) / 100 * 1.6)}px`,
+                        height: `${Math.max(12, (h * ((micLevel + tabLevel) || (isCapturing ? 20 : 12))) / 100 * 1.6)}px`,
                         opacity: 0.6 + (i % 3) * 0.15
                       }}
                     />
                   ))}
                 </div>
                 <p className="text-[11px] text-white/40 font-mono mt-2">
-                  Dual-Channel Audio: {hasMic ? `Mic (${micLevel}%)` : 'Mic Off'} • {hasTab ? `Meet Tab (${tabLevel}%)` : 'Tab Off'}
+                  {isCapturing
+                    ? `Live Audio: Mic (${micLevel}%) • Meet Tab (${tabLevel}%)`
+                    : 'Audio radar ready • Connect hardware or pick Google Meet tab'}
                 </p>
               </div>
 
@@ -467,7 +407,7 @@ export const HeroStudioView: React.FC<HeroStudioViewProps> = ({
             </div>
           </div>
 
-          {/* Real-time In-Memory Dialogue Stream (Purged on End) */}
+          {/* Real-time In-Memory Dialogue Stream (Clean State — No fake mocks) */}
           <div className="rounded-2xl bg-[#0B0C12] border border-white/10 p-4 space-y-3 shadow-xl">
             <div className="flex items-center justify-between text-xs text-white/50 border-b border-white/[0.06] pb-2 font-mono">
               <span className="flex items-center">
@@ -477,124 +417,78 @@ export const HeroStudioView: React.FC<HeroStudioViewProps> = ({
               <span className="text-[11px] text-white/40">Volatile Ring Buffer • 0 B to Disk</span>
             </div>
 
-            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-              {transcriptStream.map((turn) => {
-                const isUser = turn.speaker === 'USER';
-                return (
-                  <div
-                    key={turn.id}
-                    className={`p-2.5 rounded-xl text-xs leading-relaxed transition-all ${
-                      isUser
-                        ? 'bg-white/[0.04] border border-white/[0.08] text-white/90 ml-6'
-                        : 'bg-purple-950/20 border border-purple-500/20 text-purple-200 mr-6'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between text-[10px] text-white/40 font-mono mb-1">
-                      <span className={isUser ? 'text-emerald-400 font-bold' : 'text-fuchsia-400 font-bold'}>
-                        {isUser ? 'You (Sales / Founder)' : 'Counterparty (Client / Lead)'}
-                      </span>
-                    </div>
-                    <p>{turn.text}</p>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Quick Objection Injection Bar for instant testing */}
-            <form onSubmit={handleCustomObjectionSubmit} className="pt-2 flex items-center space-x-2">
-              <input
-                type="text"
-                placeholder="Simulate counterparty objection (e.g. 'We need a 30% discount to sign today')..."
-                value={customObjection}
-                onChange={e => setCustomObjection(e.target.value)}
-                className="flex-1 bg-[#12131C] border border-white/10 rounded-xl px-4 py-2 text-xs text-white placeholder:text-white/40 focus:outline-none focus:border-purple-500 shadow-inner"
-              />
-              <button
-                type="submit"
-                className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-90 text-white font-bold rounded-xl text-xs flex items-center transition-all shadow-md shadow-purple-600/30"
-              >
-                <Send className="w-3.5 h-3.5 mr-1" />
-                Simulate
-              </button>
-            </form>
-          </div>
-        </div>
-
-        {/* RIGHT COLUMN: TACTICAL WINGMAN HUD */}
-        <div className="lg:col-span-5 space-y-5">
-          {/* Talk Ratio Gauge */}
-          <TalkRatioGauge talkRatio={talkRatio} speaker={speaker} />
-
-          {/* Active Tactical Battlecard */}
-          <div className="relative group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-fuchsia-600/30 via-purple-600/30 to-indigo-600/30 rounded-3xl blur-xl opacity-60 pointer-events-none" />
-
-            <div className="relative rounded-2xl bg-[#0E0F16] border border-white/10 p-5 space-y-4 shadow-2xl backdrop-blur-2xl">
-              {/* Header Badges */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <span className="ref-pill text-white bg-white/10 border-white/20 font-bold text-[10px]">
-                    TACTICAL COUNTER
-                  </span>
-                  <span className="ref-pill text-purple-300 bg-purple-500/20 border-purple-500/30 text-[10px]">
-                    {activeBattlecard.inferenceSource === 'FALLBACK_LOCAL' ? 'NANO 4 (OFFLINE)' : 'HYBRID AI'}
-                  </span>
+            {transcriptStream.length === 0 ? (
+              <div className="py-8 text-center space-y-2 select-none">
+                <div className="w-9 h-9 rounded-full bg-white/[0.04] border border-white/10 mx-auto flex items-center justify-center">
+                  <Radio className="w-4 h-4 text-purple-400" />
                 </div>
+                <p className="text-xs font-semibold text-white/80">In-Memory Speech Buffer Ready</p>
+                <p className="text-[11px] text-white/40 max-w-sm mx-auto leading-relaxed">
+                  Speech will transcribe here in real time during your meeting. All raw voice data stays strictly in RAM and is permanently wiped when you end the call.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                {transcriptStream.map((turn) => {
+                  const isUser = turn.speaker === 'USER';
+                  return (
+                    <div
+                      key={turn.id}
+                      className={`p-2.5 rounded-xl text-xs leading-relaxed transition-all ${
+                        isUser
+                          ? 'bg-white/[0.04] border border-white/[0.08] text-white/90 ml-6'
+                          : 'bg-purple-950/20 border border-purple-500/20 text-purple-200 mr-6'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between text-[10px] text-white/40 font-mono mb-1">
+                        <span className={isUser ? 'text-emerald-400 font-bold' : 'text-fuchsia-400 font-bold'}>
+                          {isUser ? 'You (Sales / Founder)' : 'Counterparty (Client / Lead)'}
+                        </span>
+                      </div>
+                      <p>{turn.text}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Active Live Battlecard (Only appears when live session triggers one) */}
+          {activeBattlecard && (
+            <div className="rounded-2xl bg-[#0E0F16] border border-purple-500/40 p-4 space-y-3 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+              <div className="flex items-center justify-between">
+                <span className="ref-pill text-purple-300 bg-purple-500/20 border-purple-500/30 text-[10px] font-bold">
+                  LIVE TACTICAL COUNTER
+                </span>
                 <span className="text-xs font-mono text-white/50">
                   {activeBattlecard.latencyMs}ms latency
                 </span>
               </div>
-
-              {/* Battlecard Headline */}
-              <div>
-                <h3 className="text-xl font-extrabold text-white tracking-tight">
-                  {activeBattlecard.headline}
-                </h3>
-                <p className="text-xs text-white/50 mt-1">
-                  Trigger: <strong className="text-white/80">{activeBattlecard.sourceRule}</strong>
-                </p>
-              </div>
-
-              {/* Recommended Response Box */}
-              <div className="p-4 rounded-xl bg-black/50 border border-white/10 space-y-1.5 shadow-inner">
-                <span className="text-[10px] uppercase font-mono tracking-wider font-semibold text-emerald-400 block">
-                  Say this right now:
-                </span>
-                <p className="text-base font-bold text-white leading-snug tracking-tight">
-                  "{activeBattlecard.counterMove}"
-                </p>
-              </div>
-
-              {/* Rationale description */}
-              <p className="text-xs text-zinc-400 leading-relaxed">
-                {activeBattlecard.rationale}
+              <p className="text-sm font-bold text-white">
+                "{activeBattlecard.counterMove}"
               </p>
-
-              {/* Action Button: White Copy Button */}
-              <div className="pt-1 flex items-center justify-between">
+              <div className="flex items-center justify-between pt-1 border-t border-white/[0.06]">
+                <span className="text-[11px] text-white/40">
+                  Trigger: {activeBattlecard.sourceRule}
+                </span>
                 <button
                   onClick={handleCopyResponse}
-                  className="btn-white text-xs cursor-pointer"
+                  className="btn-white text-xs"
                 >
-                  {copied ? <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[3]" /> : <Copy className="w-3.5 h-3.5 text-black" />}
-                  <span>{copied ? 'Copied Response' : 'Copy Spoken Counter'}</span>
-                </button>
-
-                <button
-                  onClick={() => handleIncomingDialogue(activeBattlecard.sourceRule, 'COUNTERPARTY')}
-                  className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/5 hover:bg-white/10 text-white/70 hover:text-white border border-white/10 transition-all flex items-center"
-                >
-                  <RotateCw className="w-3 h-3 mr-1" />
-                  Regenerate
+                  {copied ? <Check className="w-3 h-3 text-emerald-600 stroke-[3]" /> : <Copy className="w-3 h-3 text-black" />}
+                  <span>{copied ? 'Copied' : 'Copy'}</span>
                 </button>
               </div>
             </div>
-          </div>
+          )}
+        </div>
 
-          {/* Extracted Commitments Tracker */}
-          <CommitmentsTracker commitments={commitments} />
+        {/* RIGHT COLUMN: MAC-STYLE INTERACTIVE SIMULATION WINDOW (ANIMATED DEMO) */}
+        <div className="lg:col-span-6 space-y-5">
+          {/* Mac-Style Window with Animated Simulation */}
+          <MacSimulationWindow />
 
-          {/* Air-Gap Network Egress Inspector */}
+          {/* Air-Gap Network Egress Inspector (Auditable Proof) */}
           <AirGapInspector auditLog={auditLog} totalLocalWords={totalLocalWords} />
         </div>
       </div>
@@ -624,7 +518,6 @@ export const HeroStudioView: React.FC<HeroStudioViewProps> = ({
           {playbooks.map((playbook) => {
             const isActive = playbook.id === activePlaybook.id;
 
-            // Visual themes for playbooks
             const theme = playbook.scenarioType === 'sales'
               ? { bg: 'from-rose-600 via-orange-600 to-amber-500', tag: 'Enterprise Sales' }
               : playbook.scenarioType === 'fundraising'
